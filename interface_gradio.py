@@ -48,9 +48,20 @@ def add_file(history, file):
     return history
 
 
+
 # %%
-def bot(history):
+def bot_text(history):
     response = "**That's cool!**"
+    history[-1][1] = ""
+    for character in response:
+        history[-1][1] += character
+        time.sleep(0.05)
+        yield history
+
+
+# %%
+def bot_picture(history):
+    response = "**A new picture is uploaded. What is your query ?**"
     history[-1][1] = ""
     for character in response:
         history[-1][1] += character
@@ -76,12 +87,15 @@ with gr.Blocks() as demo:
         )
         btn = gr.UploadButton("📁", file_types=["image", "video", "audio"])
 
+    # Submitting text
     txt_msg = txt.submit(add_text, [chatbot, txt], [chatbot, txt], queue=False).then(
-        bot, chatbot, chatbot, api_name="bot_response"
+        bot_text, chatbot, chatbot, api_name="bot_response"
     )
     txt_msg.then(lambda: gr.Textbox(interactive=True), None, [txt], queue=False)
+
+    # Uploading picture file
     file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
-        bot, chatbot, chatbot
+        bot_picture, chatbot, chatbot
     )
 
     chatbot.like(print_like_dislike, None, None)

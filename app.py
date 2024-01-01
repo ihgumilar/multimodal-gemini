@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ---
 # jupyter:
 #   jupytext:
@@ -8,159 +9,107 @@
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.11.2
-#   kernelspec:
-#     display_name: gemini
-#     language: python
-#     name: python3
 # ---
-
-# %% [markdown]
-# # Libraries
 
 # %%
 import os
+import time
+
+# %%
 import google.generativeai as genai
-
-
-# %% [markdown]
-# # Setup API
-
-# %%
-# Fetch Google API Key from local environment variable
-GOOGLE_API_KEY='xxx'
-genai.configure(api_key=GOOGLE_API_KEY)
-
-# %% [markdown]
-# # List models
-
-# %%
-for m in genai.list_models():
-  if 'generateContent' in m.supported_generation_methods:
-    print(m.name)
-
-
-# %% [markdown]
-# # Define google cloud project information
-
-# %%
-# Define project information
-import sys
-
-PROJECT_ID = "my-project-indo-409212"  # @param {type:"string"}
-LOCATION = "us-central1"  # @param {type:"string"}
-
-
-# %% [markdown]
-# # Chat with video
-
-# %%
-import base64
-import vertexai
-from vertexai.preview.generative_models import GenerativeModel, Part
-from vertexai.preview import generative_models
-
-vertexai.init(project=PROJECT_ID)
-
-
-
-def generate(video):
-  model = GenerativeModel("gemini-pro-vision")
-  responses = model.generate_content(
-    [video, """I want to know more about research method that the speaker talked about in the video"""],
-    generation_config={
-        "max_output_tokens": 2048,
-        "temperature": 0.4,
-        "top_p": 1,
-        "top_k": 32
-    },
-  stream=True,
-  )
-  
-  for response in responses:
-      print(response.candidates[0].content.parts[0].text)
-
-video_path='/home/igum002/codes/multimodal-gemini/My_vid_compressed.mp4'
-with open(video_path, "rb") as video_file:
-  video_bytes = video_file.read()
-
-video = Part.from_data(data=base64.b64encode(video_bytes).decode("utf-8"), mime_type="video/mp4")
-
-
-
-# video = Part.from_data(data=base64.b64decode(video_path), mime_type="video/mp4")
-
-
-
-# %%
-generate(video)
-
-# %%
-from vertexai.preview import generative_models
-from vertexai.preview.generative_models import GenerativeModel
-
-gemini_pro_vision_model = GenerativeModel("gemini-pro-vision")
-response = gemini_pro_vision_model.generate_content([
-  "What is in the video? ",
-  generative_models.Part.from_data(video_path, mime_type="video/mp4"),
-], stream=True)
-
-for chunk in response :
-  print(chunk.text)
-
-
-# %%
-# Gemini text
-import google.generativeai as genai
-
-genai.configure(api_key=GOOGLE_API_KEY)
-
-model = genai.GenerativeModel('gemini-pro')
-
-response = model.generate_content("What is the meaning of life?")
-
-print(response.text)
-
-# %%
-# Gemini pro vision
-import google.generativeai as genai
+import gradio as gr
 import PIL.Image
 
-img = PIL.Image.open('image_food.png')
-
-genai.configure(api_key=GOOGLE_API_KEY)
-
+# %%
+# Configure Gemini Pro Vision
+genai.configure(api_key='xxx')
 model = genai.GenerativeModel('gemini-pro-vision')
 
-response = model.generate_content(["Please write copywriting that is concise and meant for customers who mostly work in the Auckland CBD office and have no time to make a lunch", img])
+# %%
+# Function to generate content using Gemini Pro Vision
+def generate_content(history, prompt, file_path):
+    img = PIL.Image.open(file_path)
+    response = model.generate_content([prompt, img])
+    generated_text = response.text
 
-print(response.text)
+    # Update the chat history with the generated text
+    history[-1][1] = generated_text
+
+    return history
 
 # %%
-# Chat with gemini
-import google.generativeai as genai
-
-genai.configure(api_key=GOOGLE_API_KEY)
-
-model = genai.GenerativeModel('gemini-pro')
-
-chat = model.start_chat()
-
-while True:
-    message = input("You: ")
-    response = chat.send_message(message)
-
-    print("Gemini: " + response.text)
+# Gradio code
+def print_like_dislike(x: gr.LikeData):
+    print(x.index, x.value, x.liked)
 
 # %%
-from vertexai.preview import generative_models
-from vertexai.preview.generative_models import GenerativeModel
+def add_text(history, text):
+    history = history + [(text, None)]
+    return history, gr.Textbox(value="", interactive=False)
 
-gemini_pro_vision_model = GenerativeModel("gemini-pro-vision")
-response = gemini_pro_vision_model.generate_content([
-  "Tell me the objective of the research as discussed in the video? ",
-  generative_models.Part.from_uri("https://drive.google.com/file/d/1wCWeGPhvOIkWxFAGlHvbA-Dn5Yq45B2e/view?usp=sharing", mime_type="video/mp4"),
-], stream=True)
 
-for chunk in response :
-  print(chunk.text)
+# %%
+def add_file(history, file):
+    history = history + [((file.name,), None)]
+    return history
 
+# %%
+def bot_text(history):
+    # Check if history is not empty
+    if history:
+        response = "**That's cool!**"
+        history[-1][1] = ""
+        for character in response:
+            history[-1][1] += character
+            time.sleep(0.05)
+            yield history
+    else:
+        print("History is empty")
+
+def bot_picture(history):
+    response = "**A new picture is uploaded. What is your query ?**"
+    history[-1][1] = ""
+    for character in response:
+        history[-1][1] += character
+        time.sleep(0.05)
+        yield history
+
+# %%
+with gr.Blocks() as demo:
+    chatbot = gr.Chatbot(
+        [],
+        elem_id="chatbot",
+        bubble_full_width=False,
+        avatar_images=(None, (os.path.join(os.path.dirname(__file__), "avatar.png"))),
+    )
+
+    with gr.Row():
+        txt = gr.Textbox(
+            scale=4,
+            show_label=False,
+            placeholder="Enter text and press enter, or upload an image",
+            container=False,
+        )
+        btn = gr.UploadButton("📁", file_types=["image", "video", "audio"])
+
+    
+    # Submitting text
+    txt_msg = txt.submit(add_text, [chatbot, txt], [chatbot, txt], queue=False).then(
+        bot_text, chatbot, chatbot, api_name="bot_response"
+    )
+    txt_msg.then(lambda: gr.Textbox(interactive=True), None, [txt], queue=False)
+
+    # Uploading picture file
+    file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
+        bot_picture, chatbot, chatbot
+    )
+
+    chatbot.like(print_like_dislike, None, None)
+
+
+# %%
+demo.queue()
+if __name__ == "__main__":
+    demo.launch()
+
+# %%
