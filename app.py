@@ -9,6 +9,10 @@
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.11.2
+#   kernelspec:
+#     display_name: gemini
+#     language: python
+#     name: python3
 # ---
 
 # %%
@@ -22,8 +26,10 @@ import PIL.Image
 
 # %%
 # Configure Gemini Pro Vision
-genai.configure(api_key='xxx')
+genai.configure(api_key='')
 model = genai.GenerativeModel('gemini-pro-vision')
+
+path_temp = ""
 
 # %%
 # Function to generate content using Gemini Pro Vision
@@ -46,6 +52,7 @@ def print_like_dislike(x: gr.LikeData):
 def add_text(history, text):
     history = history + [(text, None)]
     return history, gr.Textbox(value="", interactive=False)
+    
 
 
 # %%
@@ -53,23 +60,20 @@ def add_file(history, file):
     history = history + [((file.name,), None)]
     return history
 
+
+
 # %%
 def bot_text(history):
-    # Check if history is not empty
-    if history:
-        response = "**That's cool!**"
-        history[-1][1] = ""
-        for character in response:
-            history[-1][1] += character
-            time.sleep(0.05)
-            yield history
-    else:
-        print("History is empty")
-
-def bot_picture(history):
-    response = "**A new picture is uploaded. What is your query ?**"
+    response = "**That's cool!**"
     history[-1][1] = ""
     for character in response:
+        history[-1][1] += character
+        time.sleep(0.05)
+        yield history
+
+def bot_picture(history):
+    history[-1][1] = ""
+    for character in history[0][0]:
         history[-1][1] += character
         time.sleep(0.05)
         yield history
@@ -92,14 +96,10 @@ with gr.Blocks() as demo:
         )
         btn = gr.UploadButton("📁", file_types=["image", "video", "audio"])
 
-    
-    # Submitting text
     txt_msg = txt.submit(add_text, [chatbot, txt], [chatbot, txt], queue=False).then(
         bot_text, chatbot, chatbot, api_name="bot_response"
     )
     txt_msg.then(lambda: gr.Textbox(interactive=True), None, [txt], queue=False)
-
-    # Uploading picture file
     file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
         bot_picture, chatbot, chatbot
     )
@@ -107,9 +107,8 @@ with gr.Blocks() as demo:
     chatbot.like(print_like_dislike, None, None)
 
 
-# %%
-demo.queue()
-if __name__ == "__main__":
-    demo.launch()
 
-# %%
+
+demo.queue()
+demo.launch()
+
