@@ -23,25 +23,30 @@ import time
 import google.generativeai as genai
 import gradio as gr
 import PIL.Image
+from llama_index.multi_modal_llms.gemini import GeminiMultiModal
+from llama_index.schema import ImageDocument
 
 # %%
-# Configure Gemini Pro Vision
-genai.configure(api_key='')
-model = genai.GenerativeModel('gemini-pro-vision')
+# # Configure Gemini Pro Vision
+# genai.configure(api_key='AIzaSyDP9Wv8Q-2vRJFQge-zyO138qdokEUMe3k')
+# model = genai.GenerativeModel('gemini-pro-vision')
 
-path_temp = ""
+
+GOOGLE_API_KEY=''  # add your GOOGLE API key here
+os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+
 
 # %%
-# Function to generate content using Gemini Pro Vision
-def generate_content(history, prompt, file_path):
-    img = PIL.Image.open(file_path)
-    response = model.generate_content([prompt, img])
-    generated_text = response.text
+# # Function to generate content using Gemini Pro Vision
+# def generate_content(history, prompt, file_path):
+#     img = PIL.Image.open(file_path)
+#     response = model.generate_content([prompt, img])
+#     generated_text = response.text
 
-    # Update the chat history with the generated text
-    history[-1][1] = generated_text
+#     # Update the chat history with the generated text
+#     history[-1][1] = generated_text
 
-    return history
+#     return history
 
 # %%
 # Gradio code
@@ -72,8 +77,31 @@ def bot_text(history):
         yield history
 
 def bot_picture(history):
+    # history[-1][1] = ""
+    # for character in history[0][0]:
+    #     history[-1][1] += character
+    #     time.sleep(0.05)
+    #     yield history
+
+    # Get the uploaded file
+    image_path = history[0][0][0]
+    print(image_path)
+    prompt = "Describe the given picture"
+    image_documents = [
+      ImageDocument(image_path=image_path
+      )
+    ]
+
+    # Process with Gemini pro-vision
+    gemini_pro = GeminiMultiModal(model_name="models/gemini-pro-vision")
+    complete_response = gemini_pro.complete(
+        prompt=prompt,
+        image_documents=image_documents,
+    )
+
     history[-1][1] = ""
-    for character in history[0][0]:
+    print(f"complete_response {complete_response}-{type(complete_response)}")
+    for character in complete_response:
         history[-1][1] += character
         time.sleep(0.05)
         yield history
