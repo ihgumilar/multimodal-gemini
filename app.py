@@ -32,7 +32,7 @@ from llama_index.schema import ImageDocument
 # model = genai.GenerativeModel('gemini-pro-vision')
 
 
-GOOGLE_API_KEY=''  # add your GOOGLE API key here
+GOOGLE_API_KEY='AIzaSyDP9Wv8Q-2vRJFQge-zyO138qdokEUMe3k'  # add your GOOGLE API key here
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 
@@ -101,7 +101,7 @@ def bot_picture(history):
 
     history[-1][1] = ""
     print(f"complete_response {complete_response}-{type(complete_response)}")
-    for character in complete_response:
+    for character in complete_response.text:
         history[-1][1] += character
         time.sleep(0.05)
         yield history
