@@ -40,6 +40,7 @@ os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 # # Functions
 
 # %%
+image_counter = 0
 all_image_documents = []
 
 def print_like_dislike(x: gr.LikeData):
@@ -55,17 +56,14 @@ def add_file(history, file):
 
 def store_image(history):
     # Get the uploaded file
-    image_path = history[0][0][0]
-    print(image_path)
+    global image_counter
+    image_path = history[image_counter][0][0]
+    print(history)
     all_image_documents.append(ImageDocument(image_path=image_path))
+    print( len(all_image_documents), image_path)
+    image_counter +=1 
 
-    status = "Uploaded successfuly"
-
-    history[-1][1] = ""
-    for character in status:
-        history[-1][1] += character
-        time.sleep(0.01)
-        yield history
+    yield history
 
 
 def bot_text(history):
@@ -83,7 +81,7 @@ def bot_text(history):
     # print(f"complete_response {complete_response}-{type(complete_response)}")
     for character in complete_response.text:
         history[-1][1] += character
-        time.sleep(0.05)
+        time.sleep(0.01)
         yield history
 
 
@@ -111,21 +109,21 @@ with gr.Blocks() as demo:
         )
         btn = gr.UploadButton("📁", file_types=["image", "video", "audio"])
 
-    # Submit text
-    txt_msg = txt.submit(add_text, [chatbot, txt], [chatbot, txt], queue=False).then(
-        bot_text, chatbot, chatbot, api_name="bot_response"
-    )
-    txt_msg.then(lambda: gr.Textbox(interactive=True), None, [txt], queue=False)
+        # Submit text
+        txt_msg = txt.submit(add_text, [chatbot, txt], [chatbot, txt], queue=False).then(
+            bot_text, chatbot, chatbot, api_name="bot_response"
+        )
+        txt_msg.then(lambda: gr.Textbox(interactive=True), None, [txt], queue=False)
 
-    # Upload picture
-    # file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
-    #     bot_picture, chatbot, chatbot
-    # )
-    file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
-        store_image, chatbot, chatbot
-    )
+        # Upload picture
+        # file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
+        #     bot_picture, chatbot, chatbot
+        # )
+        file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
+            store_image, chatbot, chatbot
+        )
 
-    chatbot.like(print_like_dislike, None, None)
+        chatbot.like(print_like_dislike, None, None)
 
 
 
