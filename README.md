@@ -23,3 +23,7 @@ pip install -r requirements.txt
 python app.py
 
 ```
+## Demo
+
+https://github.com/ihgumilar/multimodal-gemini/assets/49016400/31cf52a5-4d8a-46c9-9f40-f847d13e11fd
+
